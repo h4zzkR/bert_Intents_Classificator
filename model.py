@@ -3,7 +3,7 @@ from transformers import TFBertModel
 from tensorflow.keras.layers import Dropout, Dense, GlobalAveragePooling1D
 
 
-class IntentClassificationModel(tf.keras.Model):
+class IntentClassificationModelBackbone(tf.keras.Model):
 
     def __init__(self, tokenizer,
                 intent_num_labels=None, model_name="bert-base-cased",
