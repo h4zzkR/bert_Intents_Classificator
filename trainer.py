@@ -51,6 +51,8 @@ class ModelTrainer():
     def save(self, epochs, batch_size, model_save_dir='model'):
         time = datetime.datetime.now()
         name = f"{time.year}_{time.day}_{time.month}_e{epochs}_bs{batch_size}"
+        if not os.path.exists(model_save_dir):
+            os.makedirs(model_save_dir)
         self.model.save(os.path.join(model_save_dir, name)) 
 
 
