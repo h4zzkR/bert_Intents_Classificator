@@ -9,7 +9,7 @@ from tensorflow.python.client import device_lib
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import SparseCategoricalAccuracy
-from model import IntentClassificationModelBackbone
+from model import IntentClassificationModelBase
 
 
 parser = argparse.ArgumentParser(description='Trainer for bert-based intent classificator')
@@ -35,7 +35,7 @@ class ModelTrainer():
         self.encoded_valid = encode_dataset(tokenizer, df_valid["words"], max_length)
         self.encoded_test = encode_dataset(tokenizer, df_test["words"], max_length)
 
-        self.intent_model = IntentClassificationModelBackbone(tokenizer,
+        self.intent_model = IntentClassificationModelBase(tokenizer,
                     intent_num_labels=len(self.intent_map)
                     )
 
@@ -43,18 +43,26 @@ class ModelTrainer():
                 loss=SparseCategoricalCrossentropy(from_logits=True),
                 metrics=[SparseCategoricalAccuracy('accuracy')])
 
-    def train(self, epochs, batch_size):
-        history = self.intent_model.fit(self.encoded_train, self.intent_train, epochs=epochs, batch_size=batch_size,
-                           validation_data=(self.encoded_valid, self.intent_valid))
-        self.save(epochs, batch_size)
-        return self.model
-
-    def save(self, epochs, batch_size, model_save_dir='model'):
-        time = datetime.datetime.now()
-        name = f"{time.year}_{time.day}_{time.month}_e{epochs}_bs{batch_size}"
+    def train(self, epochs, batch_size, model_save_dir='model'):
         if not os.path.exists(model_save_dir):
             os.makedirs(model_save_dir)
-        self.intent_model.save(os.path.join(model_save_dir, name)) 
+
+        time = datetime.datetime.now()
+        name = f"intents_cls_e{epochs}_bs{batch_size}"
+
+        checkpoint_path = os.path.join(model_save_dir, name)
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+
+        # Create a callback that saves the model's weights
+        cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                        save_weights_only=True,
+                                                        verbose=1)
+
+
+        history = self.intent_model.fit(self.encoded_train, self.intent_train, epochs=epochs, batch_size=batch_size,
+                           validation_data=(self.encoded_valid, self.intent_valid), callbacks=cp_callback)
+
+        return self.intent_model
 
 
 if __name__ == "__main__":
