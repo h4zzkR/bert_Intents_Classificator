@@ -35,7 +35,7 @@ class ModelTrainer():
         self.encoded_valid = encode_dataset(tokenizer, df_valid["words"], max_length)
         self.encoded_test = encode_dataset(tokenizer, df_test["words"], max_length)
 
-        self.intent_model = IntentClassificationModelBase(tokenizer,
+        self.intent_model = IntentClassificationModelBase(
                     intent_num_labels=len(self.intent_map)
                     )
 
