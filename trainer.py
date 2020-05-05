@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import argparse
+import os
 import datetime
 from data_preprocess import load_prepare_dataset, encode_dataset
 from transformers import BertTokenizer
