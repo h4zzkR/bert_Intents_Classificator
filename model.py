@@ -19,7 +19,6 @@ class IntentClassificationModel(tf.keras.Model):
         # instead of the model itself.
 
         self.intent_classifier = Dense(intent_num_labels)
-        self.tokenizer = tokenizer
 
     def call(self, inputs, **kwargs):
         sequence_output, pooled_output = self.bert(inputs, **kwargs)
@@ -29,7 +28,16 @@ class IntentClassificationModel(tf.keras.Model):
         intent_logits = self.intent_classifier(pooled_output)
         return intent_logits
 
-    def classify(text, intent_names):
+
+
+class IntentClassificationModel():
+    def __init__(tokenizer, modelpath, load=True):
+        self.tokenizer = tokenizer
+        self.model = tf.keras.models.load_model(modelpath)
+        print(self.model.summary())
+
+
+    def classify(self, text, intent_names):
         # is it works?
         inputs = tf.constant(self.tokenizer.encode(text))[None, :]  # batch_size = 1
         class_id = self.predict(inputs).numpy().argmax(axis=1)[0]

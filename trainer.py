@@ -9,7 +9,7 @@ from tensorflow.python.client import device_lib
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import SparseCategoricalAccuracy
-from model import IntentClassificationModel
+from model import IntentClassificationModelBackbone
 
 
 parser = argparse.ArgumentParser(description='Trainer for bert-based intent classificator')
@@ -35,7 +35,7 @@ class ModelTrainer():
         self.encoded_valid = encode_dataset(tokenizer, df_valid["words"], max_length)
         self.encoded_test = encode_dataset(tokenizer, df_test["words"], max_length)
 
-        self.intent_model = IntentClassificationModel(tokenizer,
+        self.intent_model = IntentClassificationModelBackbone(tokenizer,
                     intent_num_labels=len(self.intent_map)
                     )
 
@@ -51,10 +51,10 @@ class ModelTrainer():
 
     def save(self, epochs, batch_size, model_save_dir='model'):
         time = datetime.datetime.now()
-        name = f"{time.year}_{time.day}_{time.month}_e{epochs}_bs{batch_size}"
+        name = f"{time.year}_{time.day}_{time.month}_e{epochs}_bs{batch_size}.h5"
         if not os.path.exists(model_save_dir):
             os.makedirs(model_save_dir)
-        self.model.save(os.path.join(model_save_dir, name)) 
+        self.intent_model.save(os.path.join(model_save_dir, name)) 
 
 
 if __name__ == "__main__":
