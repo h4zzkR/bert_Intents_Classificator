@@ -43,7 +43,7 @@ def main(ckp_path, test=True):
     intent2id, id2intent, model = init(ckp_path)
     if test:
         test_model(model, intent2id)
-
+    return model
 if __name__ == "__main__":
     ckp = 'model/intents_cls_e2_bs32'
     main(ckp)
