@@ -1,6 +1,7 @@
 import tensorflow as tf
 from transformers import TFBertModel
 from tensorflow.keras.layers import Dropout, Dense, GlobalAveragePooling1D
+from data_preprocess import encode_dataset
 
 
 class IntentClassificationModelBase(tf.keras.Model):
@@ -27,16 +28,22 @@ class IntentClassificationModelBase(tf.keras.Model):
 
 
 class IntentClassificationModel():
-    def __init__(tokenizer, ckp_path, num_classes=6, load=True):
+    def __init__(self, tokenizer, ckp_path, intents_map, load=True):
         self.tokenizer = tokenizer
-        self.model = IntentClassificationModel(num_classes)
+        self.intents_map = intents_map
+        self.model = IntentClassificationModelBase(len(intents_map.keys()))
         self.model.load_weights(ckp_path)
-    
 
-    def classify(self, text, intent_names):
+    def classify(self, text, map_intent=True):
         # is it works?
         inputs = tf.constant(self.tokenizer.encode(text))[None, :]  # batch_size = 1
-        class_id = self.predict(inputs).numpy().argmax(axis=1)[0]
-        return intent_names[class_id]
+        class_id = self.model(inputs).numpy().argmax(axis=1)[0]
+        # print(class_id, self.intents_map)
+        return self.intents_map[class_id]
+
+    def encode(self, text_sequence, max_length):
+        return encode_dataset(self.tokenizer, text_sequence, max_length)
+
+
 
 

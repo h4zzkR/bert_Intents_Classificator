@@ -15,7 +15,17 @@ def encode_dataset(tokenizer, text_sequences, max_length):
     return {"input_ids": token_ids, "attention_masks": attention_masks}
 
 
-def load_prepare_dataset(datadir='.data'):
+def load_test_data(datadir='data'):
+    lines_valid = Path(os.path.join(datadir, 'valid')).read_text().strip().splitlines()
+    return pd.DataFrame([parse_line(line) for line in lines_valid])
+
+def load_intents_map(datadir='data'):
+    intent_names = Path(os.path.join(datadir, "vocab.intent")).read_text().split()
+    intent_map = dict((label, idx) for idx, label in enumerate(intent_names))
+    return intent_map
+
+
+def load_prepare_dataset(datadir='data'):
     print('Loading data...')
     lines_train = Path(os.path.join(datadir, 'train')).read_text().strip().splitlines()
     lines_valid = Path(os.path.join(datadir, 'valid')).read_text().strip().splitlines()
