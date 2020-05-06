@@ -3,7 +3,7 @@ Simple. Trained on SNIPS dataset (will be more datasets in future)
 Accuracy on SNIPS valid data is 0.986.
 
 # Run
-`python control.py'
+`python control.py`
 
 # Train
 `python trainer.py`
