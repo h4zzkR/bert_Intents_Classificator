@@ -45,5 +45,5 @@ def main(ckp_path, test=True):
         test_model(model, intent2id)
 
 if __name__ == "__main__":
-    ckp = '/home/samsepi00/lab/intent_detection/model/intents_cls_e2_bs32'
+    ckp = 'model/intents_cls_e2_bs32'
     main(ckp)
