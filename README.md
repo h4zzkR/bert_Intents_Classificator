@@ -2,5 +2,5 @@
 Simple. Trained on SNIPS dataset (will be more datasets in future)
 
 # TODO
-  - add .gitignore
+  - ~~add .gitignore~~
   - write some code for more datasets
