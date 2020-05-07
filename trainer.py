@@ -44,7 +44,7 @@ class ModelTrainer():
                 loss=SparseCategoricalCrossentropy(from_logits=True),
                 metrics=[SparseCategoricalAccuracy('accuracy')])
 
-    def train(self, epochs, batch_size, model_save_dir='model'):
+    def train(self, epochs, batch_size, model_save_dir='./model'):
         if not os.path.exists(model_save_dir):
             os.makedirs(model_save_dir)
 
