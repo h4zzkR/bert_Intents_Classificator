@@ -3,14 +3,14 @@ from pathlib import Path
 import argparse
 import os
 import datetime
-from data_preprocess import load_prepare_dataset, encode_dataset
+from data_preprocess import load_prepare_dataset, encode_dataset, encode_token_labels
 from transformers import BertTokenizer
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.python.client import device_lib
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import SparseCategoricalAccuracy
-from model import IntentClassificationModelBase
+from model import SlotIntentDetectorModelBase
 
 
 parser = argparse.ArgumentParser(description='Trainer for bert-based intent classificator')
@@ -22,29 +22,45 @@ args = parser.parse_args()
 
 
 class ModelTrainer():
-    def __init__(self, model_name, max_length):
-        df_train, df_valid, df_test, intent_names, self.intent_map = load_prepare_dataset('data')
+    def __init__(self, model_name, max_length, curdir):
+        df_train, df_valid, df_test, intent_names, \
+                self.intent_map, self.slot_map = load_prepare_dataset(curdir)
         # Y's:
         self.intent_train = df_train["intent_label"].map(self.intent_map).values
         self.intent_valid = df_valid["intent_label"].map(self.intent_map).values
         self.intent_test = df_test["intent_label"].map(self.intent_map).values
 
         tokenizer = BertTokenizer.from_pretrained(model_name)
+        self.curdir = curdir
         # X's:
         print('Encoding data...')
         self.encoded_train = encode_dataset(tokenizer, df_train["words"], max_length)
         self.encoded_valid = encode_dataset(tokenizer, df_valid["words"], max_length)
         self.encoded_test = encode_dataset(tokenizer, df_test["words"], max_length)
 
-        self.intent_model = IntentClassificationModelBase(
-                    intent_num_labels=len(self.intent_map)
+
+        self.slot_train = encode_token_labels(
+            df_train["words"], df_train["word_labels"], tokenizer, self.slot_map, max_length)
+        self.slot_valid = encode_token_labels(
+            df_valid["words"], df_valid["word_labels"], tokenizer, self.slot_map, max_length)
+        self.slot_test = encode_token_labels(
+            df_test["words"], df_test["word_labels"], tokenizer, self.slot_map, max_length)
+
+
+        self.intent_model = SlotIntentDetectorModelBase(
+                    intent_num_labels=len(self.intent_map),
+                    slot_num_labels=len(self.slot_map)
                     )
 
-        self.intent_model.compile(optimizer=Adam(learning_rate=3e-5, epsilon=1e-08),
-                loss=SparseCategoricalCrossentropy(from_logits=True),
-                metrics=[SparseCategoricalAccuracy('accuracy')])
+        opt = Adam(learning_rate=3e-5, epsilon=1e-08)
+        losses = [SparseCategoricalCrossentropy(from_logits=True),
+                  SparseCategoricalCrossentropy(from_logits=True)]
 
-    def train(self, epochs, batch_size, model_save_dir='./model'):
+        metrics = [SparseCategoricalAccuracy('accuracy')]
+        self.intent_model.compile(optimizer=opt, loss=losses, metrics=metrics)
+
+    def train(self, epochs, batch_size, model_save_dir='model'):
+        model_save_dir = os.path.join(self.curdir, model_save_dir)
         if not os.path.exists(model_save_dir):
             os.makedirs(model_save_dir)
 
@@ -60,13 +76,16 @@ class ModelTrainer():
                                                         verbose=1)
 
 
-        history = self.intent_model.fit(self.encoded_train, self.intent_train, epochs=epochs, batch_size=batch_size,
-                           validation_data=(self.encoded_valid, self.intent_valid), callbacks=cp_callback)
+        history = self.intent_model.fit(self.encoded_train, (self.slot_train,
+                        self.intent_train), epochs=epochs, batch_size=batch_size,
+                        validation_data=(self.encoded_valid,
+                        (self.slot_valid, self.intent_valid)), callbacks=cp_callback)
 
         return self.intent_model
 
 
 if __name__ == "__main__":
-    trainer = ModelTrainer(args.model_name, args.max_length)
+    curdir = Path(__file__).parent.absolute()
+    trainer = ModelTrainer(args.model_name, args.max_length, curdir)
     model = trainer.train(epochs=2, batch_size=32); del trainer
     print(model)
