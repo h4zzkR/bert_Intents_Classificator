@@ -14,42 +14,38 @@ import datetime
 from data_preprocess import load_prepare_dataset, encode_dataset
 from transformers import BertTokenizer
 from model import SlotIntentDetectorModel
-from data_preprocess import load_intents_map, load_test_data
+from data_preprocess import load_intents_map, load_test_data, load_slots_map
 
 
 def init(curdir, ckp_path, model_name="bert-base-cased"):
     tokenizer = BertTokenizer.from_pretrained(model_name)
-    intents_map = load_intents_map(curdir)
+    intents_names, intents_map = load_intents_map(curdir)
+    slot_names, slot_map = load_slots_map(curdir)
+
     id2intent = {intents_map[i] : i for i in intents_map.keys()}
-    model = SlotIntentDetectorModel(tokenizer, ckp_path, id2intent)
-    return intents_map, id2intent, model
+    id2slot = {slot_map[i] : i for i in slot_map.keys()}
+    model = SlotIntentDetectorModel(tokenizer, ckp_path, id2intent, id2slot)
+    return model, id2intent, id2slot
 
 def test_data_load(curdir, model, intents_map, max_length=46):
     df_test = load_test_data(curdir)
     intents_test = df_test["intent_label"].values
     return df_test["words"], intents_test
 
-def test_model(curdir, model, intent2id):
-    print('Testing model on valid data...')
-    trues = 0
-    test_data, labels_test = test_data_load(curdir, model, intent2id)
-    for i, seq in enumerate(tqdm(test_data)):
-        # print(seq); sys.exit()
-        predict_label = model.classify(seq)
-        true_label = labels_test[i]
-        trues += (true_label == predict_label)
-    i += 1
-    print(f'Accuracy on test (valid data) is {round(trues/i, 3)}')
+def check_model(curdir):
+    p = os.path.join(curdir, 'model/')
+    ckp = Path(os.path.join(p, 'checkpoint')).read_text()
+    m = ckp.splitlines()[0].split(': ')[-1]
+    p = os.path.join(p, m[1:-1])
+    return p
 
-def main(ckp_path, test=True):
+def main(test=False):
     # print('GPU_____:', tf.test.gpu_device_name())
     curdir = Path(__file__).parent.absolute()
-    ckp_path = os.path.join(curdir, ckp_path)
-    intent2id, id2intent, model = init(curdir, ckp_path)
-    if test:
-        test_model(curdir, model, intent2id)
+
+    ckp_path = check_model(curdir)
+    model, id2intent, id2slot = init(curdir, ckp_path)
     return model
 
 if __name__ == "__main__":
-    ckp = 'model/intents_cls_e2_bs32'
-    main(ckp)
+    main()

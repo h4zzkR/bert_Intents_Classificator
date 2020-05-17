@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import re
 from pathlib import Path
 from utils import parse_line
 
@@ -29,8 +30,10 @@ def load_slots_map(curdir):
     slot_map = {}
     for label in slot_names:
         slot_map[label] = len(slot_map)
-    return slot_map
+    return slot_names, slot_map
 
+def space_punct(text):
+    return re.sub('(?<! )(?=[.,!?()])|(?<=[.,!?()])(?! )', r' ', text)
 
 def encode_token_labels(text_sequences, slot_names, tokenizer, slot_map,
                         max_length):

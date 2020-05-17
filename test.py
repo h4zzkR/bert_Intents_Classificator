@@ -5,9 +5,9 @@ import logging
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 
 
-model = main(ckp_path='model/intents_cls_e2_bs32', test=True)
+model = main()
 print('Input intent (AddToPlaylist, BookRestaurant, GetWeather, PlayMusic, RateBook, SearchCreativeWork, SearchScreeningEvent)')
 while True:
     inp = input('> ')
-    intent_cl = model.classify(inp)
+    intent_cl = model.nlu(inp)
     print('<', intent_cl)

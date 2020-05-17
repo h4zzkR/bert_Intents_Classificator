@@ -1,7 +1,7 @@
 import tensorflow as tf
 from transformers import TFBertModel
 from tensorflow.keras.layers import Dropout, Dense, GlobalAveragePooling1D
-from data_preprocess import encode_dataset
+from data_preprocess import encode_dataset, space_punct
 
 
 class SlotIntentDetectorModelBase(tf.keras.Model):
@@ -38,15 +38,17 @@ class SlotIntentDetectorModelBase(tf.keras.Model):
 
 
 class SlotIntentDetectorModel():
-    def __init__(self, tokenizer, ckp_path, intents_map, slots_map, load=True):
+    def __init__(self, tokenizer, ckp_path, id2intent, id2slot, load=True):
         self.tokenizer = tokenizer
-        self.intents_map = intents_map # id2intent
-        self.slots_map = slots_map # id2slot
-        self.model = SlotIntentDetectorModelBase(len(intents_map.keys()))
+        self.id2intent = id2intent # id2intent
+        self.id2slot = id2slot # id2slot
+        self.model = SlotIntentDetectorModelBase(
+            len(id2intent.keys()), len(id2slot.keys())
+            )
         self.model.load_weights(ckp_path)
 
-    def decode_predictions(text, intent_id, slot_ids):
-        info = {"intent": self.intents_map[intent_id]}
+    def decode_predictions(self, text, intent_id, slot_ids):
+        info = {"intent": self.id2intent[intent_id]}
         collected_slots = {}
         active_slot_words = []
         active_slot_name = None
@@ -54,7 +56,7 @@ class SlotIntentDetectorModel():
             tokens = self.tokenizer.tokenize(word)
             current_word_slot_ids = slot_ids[:len(tokens)]
             slot_ids = slot_ids[len(tokens):]
-            current_word_slot_name = self.slots_map[current_word_slot_ids[0]]
+            current_word_slot_name = self.id2slot[current_word_slot_ids[0]]
             if current_word_slot_name == "O":
                 if active_slot_name:
                     collected_slots[active_slot_name] = " ".join(active_slot_words)
@@ -78,15 +80,16 @@ class SlotIntentDetectorModel():
         return info
 
     def classify(self, text, map_intent=True):
-        # is it works?
+        # deprecated
         inputs = tf.constant(self.tokenizer.encode(text))[None, :]  # batch_size = 1
         class_id = self.model(inputs).numpy().argmax(axis=1)[0]
-        # print(class_id, self.intents_map)
-        return self.intents_map[class_id]
+        # print(class_id, self.id2intent)
+        return self.id2intent[class_id]
 
 
-    def nlu(text):
-        inputs = tf.constant(tokenizer.encode(text))[None, :]  # batch_size = 1
+    def nlu(self, text):
+        text = space_punct(text)
+        inputs = tf.constant(self.tokenizer.encode(text))[None, :]  # batch_size = 1
         slot_logits, intent_logits = self.model(inputs)
         slot_ids = slot_logits.numpy().argmax(axis=-1)[0, 1:-1]
         intent_id = intent_logits.numpy().argmax(axis=-1)[0]
