@@ -1,53 +1,41 @@
+import os
 import tensorflow as tf
-from transformers import TFBertModel
-from tensorflow.keras.layers import Dropout, Dense, GlobalAveragePooling1D
-from data_preprocess import encode_dataset, space_punct
-
-
-class SlotIntentDetectorModelBase(tf.keras.Model):
-
-    def __init__(self, intent_num_labels=None, slot_num_labels=None,
-                 model_name="bert-base-cased", dropout_prob=0.1):
-        super().__init__(name="joint_intent_slot")
-        self.bert = TFBertModel.from_pretrained(model_name)
-        self.dropout = Dropout(dropout_prob)
-        self.intent_classifier = Dense(intent_num_labels,
-                                       name="intent_classifier")
-        self.slot_classifier = Dense(slot_num_labels,
-                                     name="slot_classifier")
-
-    def call(self, inputs, **kwargs):
-        sequence_output, pooled_output = self.bert(inputs, **kwargs)
-
-        # The first output of the main BERT layer has shape:
-        # (batch_size, max_length, output_dim)
-        sequence_output = self.dropout(sequence_output,
-                                       training=kwargs.get("training", False))
-        slot_logits = self.slot_classifier(sequence_output)
-
-        # The second output of the main BERT layer has shape:
-        # (batch_size, output_dim)
-        # and gives a "pooled" representation for the full sequence from the
-        # hidden state that corresponds to the "[CLS]" token.
-        pooled_output = self.dropout(pooled_output,
-                                     training=kwargs.get("training", False))
-        intent_logits = self.intent_classifier(pooled_output)
-
-        return slot_logits, intent_logits
-
-
+from transformers import BertTokenizer
+from pathlib import Path
+from utils import load_prepare_dataset, encode_dataset, \
+    load_intents_map, load_test_data, load_slots_map, space_punct
+from base import SlotIntentDetectorModelBase
 
 class SlotIntentDetectorModel():
-    def __init__(self, tokenizer, ckp_path, id2intent, id2slot, load=True):
-        self.tokenizer = tokenizer
-        self.id2intent = id2intent # id2intent
-        self.id2slot = id2slot # id2slot
+    def __init__(self, model_name="bert-base-cased", load=True):
+        curdir = Path(__file__).parent.absolute()
+        self.tokenizer = BertTokenizer.from_pretrained(model_name)
+
+        intents_names, intents_map = load_intents_map(curdir)
+        slot_names, slot_map = load_slots_map(curdir)
+
+        self.id2intent = {intents_map[i] : i for i in intents_map.keys()}
+        self.id2slot = {slot_map[i] : i for i in slot_map.keys()}
+
         self.model = SlotIntentDetectorModelBase(
-            len(id2intent.keys()), len(id2slot.keys())
+            len(self.id2intent.keys()), len(self.id2slot.keys())
             )
+
+        ckp_path = self.check_model(curdir)
         self.model.load_weights(ckp_path)
 
+    def check_model(self, curdir):
+        p = os.path.join(curdir, 'model/')
+        ckp = Path(os.path.join(p, 'checkpoint')).read_text()
+        m = ckp.splitlines()[0].split(': ')[-1]
+        p = os.path.join(p, m[1:-1])
+        return p
+
     def decode_predictions(self, text, intent_id, slot_ids):
+        """
+        Model output to json-like data
+        {'intent' : name, 'slots' : {'a' : 'b'}}
+        """
         info = {"intent": self.id2intent[intent_id]}
         collected_slots = {}
         active_slot_words = []
@@ -98,7 +86,3 @@ class SlotIntentDetectorModel():
 
     def encode(self, text_sequence, max_length):
         return encode_dataset(self.tokenizer, text_sequence, max_length)
-
-
-
-

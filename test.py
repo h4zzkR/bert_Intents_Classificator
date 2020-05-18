@@ -1,11 +1,11 @@
 import os
-from control import main
+from model import SlotIntentDetectorModel
 
 import logging
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 
 
-model = main()
+model = SlotIntentDetectorModel()
 print('Input intent (AddToPlaylist, BookRestaurant, GetWeather, PlayMusic, RateBook, SearchCreativeWork, SearchScreeningEvent)')
 while True:
     inp = input('> ')

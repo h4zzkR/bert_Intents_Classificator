@@ -3,14 +3,14 @@ from pathlib import Path
 import argparse
 import os
 import datetime
-from data_preprocess import load_prepare_dataset, encode_dataset, encode_token_labels
+from utils import load_prepare_dataset, encode_dataset, encode_token_labels
 from transformers import BertTokenizer
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.python.client import device_lib
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.keras.metrics import SparseCategoricalAccuracy
-from model import SlotIntentDetectorModelBase
+from base import SlotIntentDetectorModelBase
 
 
 parser = argparse.ArgumentParser(description='Trainer for bert-based intent classificator')
