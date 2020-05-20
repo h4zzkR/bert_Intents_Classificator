@@ -12,3 +12,4 @@ Accuracy on SNIPS valid data is 0.986.
 # TODO
   - ~~add .gitignore~~
   - write some code for more datasets
+  - Split intents detection and tags extract
